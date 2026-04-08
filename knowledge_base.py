@@ -84,4 +84,4 @@ class KnowledgeBaseServices(object):
 # 测试类
 if __name__ == '__main__':
     kbs = KnowledgeBaseServices()
-    print(kbs.upload_by_str("张三是个法外狂徒", "test.txt"))
+    print(kbs.upload_by_str("张三是个法外狂徒，他总是被拿来做案例", "test.txt"))
