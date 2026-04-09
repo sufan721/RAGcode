@@ -9,3 +9,4 @@ date/
 chroma_db/
 # Virtual environments
 .venv
+.idea/
