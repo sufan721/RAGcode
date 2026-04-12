@@ -1,3 +1,6 @@
+from email.message import Message
+
+from langchain_core.prompts import MessagesPlaceholder
 
 md5_path = "./date/md5.text" #存储MD5文件的路径
 date_path = "./date" #存储所有数据的文件夹
@@ -20,5 +23,7 @@ chat_modle = "qwen3-max"
 
 prompt = [
     ("system", "以我提供的已知参考资料为主，简洁和专业的回答用户我问题。参考资料{context}"),
-   ( "user","请根据提供的上下文，回答问题：{question}")
+    ("system", "并且我提供用户的对话历史记录，记录如下"),
+    MessagesPlaceholder("history"),
+   ( "user","请根据提供的上下文，回答问题：{input}")
 ]

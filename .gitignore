@@ -10,3 +10,4 @@ chroma_db/
 # Virtual environments
 .venv
 .idea/
+chat_history/

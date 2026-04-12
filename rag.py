@@ -1,7 +1,9 @@
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnablePassthrough, RunnableWithMessageHistory, RunnableLambda
+from requests import session
 
+from file_history import get_history
 from vector_stores import  VectorStoreServices
 from langchain_community.embeddings import  DashScopeEmbeddings
 import config_date as config
@@ -21,23 +23,46 @@ class RagServices(object):
     def __get_chain(self):
         """获取最终的执行链"""
         retriever = self.vector_store.get_retriever()
+        def temp(value):
+            return value["input"]
 
 
+        def test(value:  dict)-> dict:
+            value["history"] = value["input"]["history"]
+            value["input"] = value["input"]["input"]
+            return  value
         chain = (
             {
-                "question":RunnablePassthrough (),
-                "context": retriever|(lambda docs: "\n\n".join([f"文档片段{doc.page_content}\n文档元数据{doc.metadata}\n" for doc in docs] ) if docs else "无相关参考资料")
+                "input":RunnablePassthrough (),
+                "context":RunnableLambda(temp)| retriever|(lambda docs: "\n\n".join([f"文档片段{doc.page_content}\n文档元数据{doc.metadata}\n" for doc in docs] ) if docs else "无相关参考资料")
             }
+            |RunnableLambda(test)
+
             | self.prompt_template
             | self.chat_modle
             | StrOutputParser()
 
         )
-        return chain
+        add_chain = RunnableWithMessageHistory(
+            chain,
+            get_history,
+            input_key="input",
+            history_messages_key="history"
+        )
 
-#
-# def format_documents(docs :list[Document]):
-#     """格式化文档"""
-#     if not docs:
-#         return "无相关参考资料"
-#     return "\n\n".join([f"文档片段{doc.page_content}\n文档元数据{doc.metadata}\n" for doc in docs])
+
+        return add_chain
+
+
+
+if __name__ == '__main__':
+    session_confing = {
+        "configurable" : {
+            "session_id" : "user_001"
+        }
+    }
+
+
+    rag = RagServices()
+    input = "如何使用langchain?"
+    print(rag.chain.invoke({"input":input},session_confing))
