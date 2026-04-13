@@ -1,29 +1,48 @@
-import time
+import pdfplumber
+from docx import Document
+from io import BytesIO
 
 import streamlit as st
 from knowledge_base import KnowledgeBaseServices
 
-st.title("文件更新服务")
+def extract_text_from_file(uploaded_file):
+    """根据文件类型直接提取文本内容"""
+    file_name = uploaded_file.name
 
+    if file_name.endswith('.txt'):
+        return uploaded_file.read().decode("utf-8")
+
+    elif file_name.endswith('.pdf'):
+        with pdfplumber.open(BytesIO(uploaded_file.read())) as pdf:
+            return "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
+
+    elif file_name.endswith('.docx'):
+        doc = Document(BytesIO(uploaded_file.read()))
+        return "\n".join([para.text for para in doc.paragraphs])
+
+    return None
+
+
+st.title("RAG 知识库上传服务")
+
+# 1. 扩展支持的文件类型
 uploaded_file = st.file_uploader(
-    "请上传txt文件",
-    type = [ "txt"],
-    accept_multiple_files= False
+    "上传文档 (支持 txt, pdf, docx)",
+    type=["txt", "pdf", "docx"]
 )
-
 
 if "Knowledgebase" not in st.session_state:
     st.session_state.Knowledgebase = KnowledgeBaseServices()
 
-if uploaded_file :
-    file_name = uploaded_file.name
-    file_type = uploaded_file.type
-    file_size = uploaded_file.size / 1024
-    st.subheader(f"文件名称：{file_name}")
-    st.write(f"文件类型：{file_type}|文件大小：{file_size:.2f}KB")
-    text = uploaded_file.read().decode("utf-8")
-    # 显示文件解析
-    with st.spinner("正在解析文件..."):
-        time.sleep(1)
-        ans =  st.session_state.Knowledgebase.upload_by_str(text, file_name)
-        st.write(ans)
+if uploaded_file:
+    with st.spinner(f"正在解析 {uploaded_file.name}..."):
+        # 2. 直接获取文本内容，无需本地 batch_convert 脚本
+        text = extract_text_from_file(uploaded_file)
+
+        if text:
+            # 3. 直接上传到你的 RAG 后端
+            ans = st.session_state.Knowledgebase.upload_by_str(text, uploaded_file.name)
+            st.success(f"解析成功！后端响应：{ans}")
+            st.text_area("预览提取的内容 (前500字):", text[:500], height=200)
+        else:
+            st.error("文件内容为空或解析失败")
