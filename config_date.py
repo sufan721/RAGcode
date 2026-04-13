@@ -27,3 +27,10 @@ prompt = [
     MessagesPlaceholder("history"),
    ( "user","请根据提供的上下文，回答问题：{input}")
 ]
+
+
+session_confing = {
+        "configurable" : {
+            "session_id" : "user_001"
+        }
+    }
